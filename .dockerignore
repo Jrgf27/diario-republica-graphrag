@@ -1,0 +1,6 @@
+.env.graphrag
+.git
+**/__pycache__
+**/.pytest_cache
+internal_graphrag/data
+notebooks

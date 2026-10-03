@@ -1,0 +1,6 @@
+.env.graphrag
+__pycache__/
+.pytest_cache/
+.venv/
+internal_graphrag/data/
+*.log

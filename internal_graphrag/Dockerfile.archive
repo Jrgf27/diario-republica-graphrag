@@ -1,0 +1,7 @@
+FROM mcr.microsoft.com/playwright/python:v1.63.0-noble
+WORKDIR /app
+COPY internal_graphrag/requirements.txt /app/requirements.txt
+COPY internal_graphrag/requirements.archive.txt /app/requirements.archive.txt
+RUN pip install --no-cache-dir -r requirements.archive.txt
+COPY internal_graphrag /app/internal_graphrag
+CMD ["python", "-m", "internal_graphrag.archive"]

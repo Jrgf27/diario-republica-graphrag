@@ -1,0 +1,60 @@
+name: diario-republica-graphrag
+
+services:
+  neo4j:
+    image: neo4j:5.26.31
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?Set NEO4J_PASSWORD in your environment}
+    ports:
+      - "127.0.0.1:17474:7474"
+      - "127.0.0.1:17687:7687"
+    volumes:
+      - graphrag_neo4j:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  ingest:
+    build:
+      context: .
+      dockerfile: internal_graphrag/Dockerfile
+    profiles: ["job"]
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?Set NEO4J_PASSWORD in your environment}
+      GRAPHRAG_DATA_DIR: /data
+    volumes:
+      - graphrag_snapshots:/data
+    command: ["python", "-m", "internal_graphrag.cli", "ingest", "--feed", "I", "--feed", "II", "--feed", "II-L", "--limit", "500"]
+
+  archive:
+    build:
+      context: .
+      dockerfile: internal_graphrag/Dockerfile.archive
+    profiles: ["archive"]
+    init: true
+    ipc: host
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?Set NEO4J_PASSWORD in your environment}
+      GRAPHRAG_DATA_DIR: /data
+    volumes:
+      - graphrag_snapshots:/data
+
+volumes:
+  graphrag_neo4j:
+    external: true
+    name: diario-republica-graphrag_graphrag_neo4j
+  graphrag_snapshots:
+    external: true
+    name: diario-republica-graphrag_graphrag_snapshots
