@@ -29,6 +29,14 @@ class Graph:
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self._prepared = False
 
+    @classmethod
+    def from_driver(cls, driver) -> Graph:
+        """Reuse a caller-owned connection for read operations."""
+        graph = cls.__new__(cls)
+        graph.driver = driver
+        graph._prepared = False
+        return graph
+
     def close(self) -> None:
         self.driver.close()
 

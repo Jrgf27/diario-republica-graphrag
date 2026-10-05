@@ -1,0 +1,4 @@
+-r requirements.txt
+-r requirements.archive.txt
+streamlit>=1.65,<2
+streamlit-agraph==0.0.45

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import os
 import re
 import sys
@@ -115,8 +116,13 @@ class ArchiveBackfill:
         if not url:
             return None
         page.goto(url, wait_until="domcontentloaded", timeout=45_000)
+        page.wait_for_function(
+            "() => document.querySelector('h1') || window.location.pathname === '/dr/error'",
+            timeout=30_000,
+        )
+        if urlparse(page.url).path == "/dr/error":
+            return None
         heading = page.locator("h1").first
-        heading.wait_for(timeout=30_000)
         issue_date = parse_issue_date(heading.inner_text(), series)
         return issue_date, url
 
@@ -238,6 +244,17 @@ def main() -> int:
     if args.start > args.end or args.end > datetime.now(ZoneInfo("Europe/Lisbon")).date():
         parser.error("--from must precede --to, and --to cannot be in the future")
     args.series = args.series or ["I", "II"]
+    lock = None
+    if os.getenv("GRAPHRAG_ARCHIVE_LOCK_HELD") != "1":
+        data_dir = Path(args.data_dir)
+        data_dir.mkdir(parents=True, exist_ok=True)
+        lock = (data_dir / ".archive.lock").open("a+")
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            lock.close()
+            print("Another archive backfill is already running.", file=sys.stderr)
+            return 2
     crawler = ArchiveBackfill(args)
     try:
         with sync_playwright() as playwright:
@@ -250,6 +267,8 @@ def main() -> int:
             return result
     finally:
         crawler.close()
+        if lock:
+            lock.close()
 
 
 if __name__ == "__main__":

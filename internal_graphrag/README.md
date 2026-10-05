@@ -102,6 +102,50 @@ backfill-urls.txt`. Blank lines and lines beginning with `#` are ignored.
 
 ## View the graph
 
+For a local web interface, start the Streamlit explorer:
+
+```sh
+./internal_graphrag/run-web-local.sh
+```
+
+Open `http://127.0.0.1:18501`. Enter a topic or question to see matching
+passages grouped by publication on the left and their graph on the right.
+A year in the question filters publications to that year unless you select
+"Include publications from other years". Explore a publication to focus the
+graph on its immediate relationships. Hover over a node for a preview, then
+click it to see its connections or move its full details to the left column.
+The overview graph shows up to three connections per publication so it remains
+readable. To stop the interface and API, run `docker compose --env-file
+.env.graphrag -f docker-compose.graphrag.yml --profile web --profile api stop web api`.
+
+The **Backfill earlier publications** section starts a resumable archive run
+for a chosen date range and series. It shows the latest run and recent worker
+output. Only one archive run can use the snapshot volume at a time; the
+existing command-line and scheduled workers use the same lock. A date range
+can contain many publications, so use the optional maximum publication count
+for a smaller first run.
+
+The same startup script also starts a local JSON API for AI agents at
+`http://127.0.0.1:18502`. It is bound to localhost and returns source
+evidence, not generated legal conclusions. For example:
+
+```sh
+curl -G 'http://127.0.0.1:18502/query' --data-urlencode 'q=O que mudou no IVA em 2025?'
+curl -X POST 'http://127.0.0.1:18502/query' -H 'Content-Type: application/json' \
+  -d '{"query":"IVA construção","limit":5}'
+curl -G 'http://127.0.0.1:18502/graph' --data-urlencode 'id=62-2025-942401300'
+curl -G 'http://127.0.0.1:18502/node' --data-urlencode 'id=62-2025-942401300'
+```
+
+`/query` returns grouped passages plus a compact graph. `/node` returns node
+properties without full publication text; `/graph` returns a node's immediate
+relationships. `/health` checks Neo4j, and `/openapi.json` describes the API.
+
+The web interface does not generate legal answers; it presents indexed evidence
+and official source links for inspection.
+
+The original Neo4j Browser is also available:
+
 Open `http://127.0.0.1:17474/browser/`, select `neo4j://` or `bolt://`, and
 set the connection URL to `127.0.0.1:17687` (Neo4j Browser's default port
 7687 belongs to a different stack). Sign in as `neo4j` with the password in

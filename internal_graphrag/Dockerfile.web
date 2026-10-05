@@ -1,0 +1,10 @@
+FROM mcr.microsoft.com/playwright/python:v1.63.0-noble
+WORKDIR /app
+COPY internal_graphrag/requirements.txt /app/requirements.txt
+COPY internal_graphrag/requirements.archive.txt /app/requirements.archive.txt
+COPY internal_graphrag/requirements.web.txt /app/requirements.web.txt
+RUN pip install --no-cache-dir -r requirements.web.txt
+COPY internal_graphrag /app/internal_graphrag
+COPY internal_graphrag/streamlit-config.toml /app/.streamlit/config.toml
+ENV PYTHONPATH=/app
+CMD ["streamlit", "run", "internal_graphrag/web_app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true", "--browser.gatherUsageStats=false"]
